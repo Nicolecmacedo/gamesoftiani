@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jogo da Memória - Alfabetização</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+  <div id="root" class="mt-10"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    "use client";
+    const { useState, useEffect } = React;
+
+    const pares = [
+      { id: 1, pergunta: "Qual é a letra inicial da palavra 'bola'?", resposta: "B" },
+      { id: 2, pergunta: "Complete: O sol nasce no ______.", resposta: "leste" },
+      { id: 3, pergunta: "Quem é o personagem principal de 'Chapeuzinho Vermelho'?", resposta: "Chapeuzinho Vermelho" },
+      { id: 4, pergunta: "Qual palavra rima com 'pato'?", resposta: "gato" },
+      { id: 5, pergunta: "Complete: A ______ gosta de mel.", resposta: "abelha" },
+      { id: 6, pergunta: "Quem escreveu 'O Pequeno Príncipe'?", resposta: "Antoine de Saint-Exupéry" }
+    ];
+
+    const embaralhar = (array) => {
+      const duplicado = array.flatMap((par) => [
+        { id: par.id, texto: par.pergunta },
+        { id: par.id, texto: par.resposta }
+      ]);
+      return duplicado
+        .map((item) => ({ ...item, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ id, texto }) => ({ id, texto }));
+    };
+
+    function JogoMemoria() {
+      const [cartas, setCartas] = useState([]);
+      const [viradas, setViradas] = useState([]);
+      const [combinadas, setCombinadas] = useState([]);
+
+      const tocarSom = (frequencia) => {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = frequencia;
+        osc.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+      };
+
+      useEffect(() => {
+        setCartas(embaralhar(pares));
+      }, []);
+
+      const virarCarta = (index) => {
+        if (viradas.length === 2 || viradas.includes(index) || combinadas.includes(index)) return;
+        const novasViradas = [...viradas, index];
+        setViradas(novasViradas);
+
+        if (novasViradas.length === 2) {
+          const [primeira, segunda] = novasViradas;
+          if (cartas[primeira].id === cartas[segunda].id) {
+            tocarSom(800);
+            setCombinadas((prev) => [...prev, primeira, segunda]);
+          } else {
+            tocarSom(200);
+          }
+          setTimeout(() => setViradas([]), 800);
+        }
+      };
+
+      return (
+        <div className="p-4 max-w-3xl mx-auto">
+          <h2 className="text-2xl font-bold text-center mb-2">Jogo da Memória</h2>
+          <p className="text-center mb-4 text-gray-700">Encontre cada pergunta e sua resposta correta.</p>
+          <div className="grid grid-cols-4 gap-4 justify-center">
+            {cartas.map((carta, index) => {
+              const revelada = viradas.includes(index) || combinadas.includes(index);
+              return (
+                <button
+                  key={index}
+                  onClick={() => virarCarta(index)}
+                  className={`h-24 p-2 text-center text-sm rounded-lg flex items-center justify-center shadow transition-all duration-300 ${revelada ? 'bg-white' : 'bg-blue-300'}`}
+                >
+                  {revelada ? carta.texto : '❓'}
+                </button>
+              );
+            })}
+          </div>
+          {combinadas.length === cartas.length && (
+            <p className="text-center text-green-600 font-bold mt-6">
+              🎉 Parabéns! Você encontrou todos os pares!
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<JogoMemoria />);
+  </script>
+</body>
+</html>
